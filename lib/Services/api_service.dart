@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl =
-      "https://08b11d6f2553.ngrok-free.app/api"; // Replace with your real backend URL
+      "https://08b11d6f2553.ngrok-free.app/api"; // Replace with your backend URL
 
-  // SEND VERIFICATION CODE API
+  // SEND VERIFICATION CODE
   static Future<Map<String, dynamic>> sendVerifyCode(String email) async {
     final url = Uri.parse("$baseUrl/send_verify_code");
     try {
@@ -15,18 +15,23 @@ class ApiService {
         body: jsonEncode({"email": email}),
       );
 
+      Map<String, dynamic> body = {};
+      try {
+        body = jsonDecode(response.body);
+      } catch (_) {
+        body = {"msg": response.body};
+      }
+
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
         return {
           "success": true,
           "message": body['msg'] ?? "Verification code sent",
           "data": body['data'] ?? {}
         };
       } else {
-        final error = jsonDecode(response.body);
         return {
           "success": false,
-          "message": error["msg"] ?? "Failed to send verification code"
+          "message": body['msg'] ?? "Failed to send verification code"
         };
       }
     } catch (e) {
@@ -34,7 +39,7 @@ class ApiService {
     }
   }
 
-  // REGISTER API
+  // REGISTER
   static Future<Map<String, dynamic>> register({
     required String name,
     required String email,
@@ -56,7 +61,6 @@ class ApiService {
         }),
       );
 
-      // Safely decode response only if body is valid JSON
       Map<String, dynamic> body = {};
       try {
         body = jsonDecode(response.body);
@@ -67,17 +71,14 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {"success": true, "data": body['data'] ?? {}};
       } else {
-        return {
-          "success": false,
-          "message": body["msg"] ?? "Registration failed"
-        };
+        return {"success": false, "message": body["msg"] ?? "Registration failed"};
       }
     } catch (e) {
       return {"success": false, "message": e.toString()};
     }
   }
 
-  // LOGIN API
+  // LOGIN
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -90,11 +91,17 @@ class ApiService {
         body: jsonEncode({"email": email, "password": password}),
       );
 
+      Map<String, dynamic> body = {};
+      try {
+        body = jsonDecode(response.body);
+      } catch (_) {
+        body = {"msg": response.body};
+      }
+
       if (response.statusCode == 200) {
-        return {"success": true, "data": jsonDecode(response.body)['data']};
+        return {"success": true, "data": body['data'] ?? {}};
       } else {
-        final error = jsonDecode(response.body);
-        return {"success": false, "message": error["msg"] ?? "Login failed"};
+        return {"success": false, "message": body["msg"] ?? "Login failed"};
       }
     } catch (e) {
       return {"success": false, "message": e.toString()};
