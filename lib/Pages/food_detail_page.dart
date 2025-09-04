@@ -134,9 +134,19 @@ class FoodDetailPage extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Reviews section
-            const Text(
-              "Customer Reviews",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            // Reviews section with review count
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Customer Reviews",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "(${item.reviews.length} reviews)",
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ],
             ),
             const Divider(thickness: 1.2),
             const SizedBox(height: 8),

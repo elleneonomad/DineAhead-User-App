@@ -320,7 +320,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage>
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ChatPage(restaurantName: restaurant.name),
+                      builder: (_) => ChatPage(restaurant: restaurant),
                     ),
                   );
                 },

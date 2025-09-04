@@ -121,27 +121,45 @@ class _SearchPageState extends State<SearchPage> {
           )
         ],
       ),
-      child: ListTile(
-        title: Text(menuItem.name,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Restaurant: ${restaurant.name}"),
-            Text("Price: \$${menuItem.price.toStringAsFixed(2)}"),
-          ],
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () {
-          _performSearch(menuItem.name, saveToRecent: true);
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FoodDetailPage(item: menuItem),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              menuItem.imageUrl,
+              width: 80,
+              height: 80,
+              fit: BoxFit.cover,
             ),
-          );
-        },
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(menuItem.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Restaurant: ${restaurant.name}"),
+                  Text("Price: \$${menuItem.price.toStringAsFixed(2)}"),
+                ],
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                _performSearch(menuItem.name, saveToRecent: true);
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FoodDetailPage(item: menuItem),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

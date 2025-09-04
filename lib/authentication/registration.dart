@@ -1,7 +1,7 @@
-import 'package:dinengo/authentication/login.dart';
 import 'package:flutter/material.dart';
-import 'mock_api_service.dart';
-import '../Async/async_app.dart'; // Import your main app widget
+import 'package:dinengo/authentication/login.dart';
+import '../Async/async_app.dart';
+import '../Services/api_service.dart';
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -13,73 +13,105 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String? _avatarPath;
+  final TextEditingController _verifyCodeController = TextEditingController();
 
-  // void _pickAvatar() async {
-  //   // Logic to pick an avatar (e.g., using image_picker package)
-  //   setState(() {
-  //     _avatarPath = 'path/to/avatar.png'; // Replace with actual file path
-  //   });
-  // }
+  bool _isLoading = false;
+  bool _codeSent = false;
 
-  void _register() async {
-    if (_formKey.currentState!.validate()) {
-      final response = await MockApiService.register(
-        _nameController.text,
-        _emailController.text,
-        _passwordController.text,
-        'user', // default user type
-        'avatar.png', // hardcoded avatar
-      );
+  // Send verification code
+  void _sendVerifyCode() async {
+    if (_emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Please enter your email")));
+      return;
+    }
 
-      if (response['success']) {
-        final data = response['data'];
-        print('Registration successful: ${data['name']}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registered as ${data['name']}')),
-        );
-        // Navigate or save token here
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainApp()),
-        );
+    setState(() => _isLoading = true);
+
+    final response =
+        await ApiService.sendVerifyCode(_emailController.text.trim());
+
+    setState(() => _isLoading = false);
+
+    if (response['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response['message'] ?? "Code sent")));
+
+      // Auto-fill verification code from backend response
+      final code = response['data']?['verify_code']?.toString() ?? '';
+      if (code.isNotEmpty) {
+        _verifyCodeController.text = code;
+        setState(() => _codeSent = true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration failed')),
-        );
+            SnackBar(content: Text("Verification code not received")));
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(response['message'] ?? "Failed to send code")));
+    }
+  }
+
+  // Register user
+  void _register() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_codeSent) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Please send and enter the verification code")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final response = await ApiService.register(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+      verifyCode: _verifyCodeController.text.trim(),
+      avatar: "avatar.png",
+    );
+
+    setState(() => _isLoading = false);
+
+    if (response['success']) {
+      final data = response['data'];
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Registered as ${data['name']}')));
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainApp()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(response['message'] ?? 'Registration failed')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text('Registration'),
-      //   backgroundColor: Color(0xFFFF6F00), // Primary color
-      // ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
+              // Back button
               Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   IconButton(
-                    onPressed: () {
-                      // Navigator.pop(context); // Navigate back to the previous screen
-                    },
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: Color(0xFFFF6F00),
-                      size: 32,
-                    ),
+                    icon: Icon(Icons.arrow_back,
+                        color: Color(0xFFFF6F00), size: 32),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
               SizedBox(height: 24),
+
+              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -97,62 +129,92 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           color: Color(0xFFFF6F00))),
                 ],
               ),
-              SizedBox(height: 48),
-              Text(
-                'Sign Up',
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Montserrat',
-                    color: Colors.black),
-              ),
-              SizedBox(height: 48),
+              SizedBox(height: 32),
+
+              Text('Sign Up',
+                  style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Montserrat',
+                      color: Colors.black)),
+              SizedBox(height: 32),
+
+              // Name
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
                     labelText: 'Name',
-                    labelStyle: TextStyle(
-                      color: Colors.grey,
-                      fontFamily: 'Montserrat',
-                    ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                        borderRadius: BorderRadius.circular(16)),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    return null;
-                  },
+                  validator: (value) =>
+                      value!.isEmpty ? 'Please enter your name' : null,
                 ),
               ),
               SizedBox(height: 16),
+
+              // Email + Send Code
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.isEmpty)
+                            return 'Please enter your email';
+                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value))
+                            return 'Please enter a valid email';
+                          return null;
+                        },
+                      ),
                     ),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
+                    SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _sendVerifyCode,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFFFF6F00),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      ),
+                      child: _isLoading
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Text('Send Code'),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(height: 16),
+
+              // Verification code
+              if (_codeSent)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: TextFormField(
+                    controller: _verifyCodeController,
+                    decoration: InputDecoration(
+                      labelText: 'Verification Code',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                    validator: (value) =>
+                        value!.isEmpty ? 'Enter verification code' : null,
+                  ),
+                ),
+              if (_codeSent) SizedBox(height: 16),
+
+              // Password
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: TextFormField(
@@ -160,159 +222,83 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   decoration: InputDecoration(
                     labelText: 'Password',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                        borderRadius: BorderRadius.circular(16)),
                   ),
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value == null || value.isEmpty)
                       return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
+                    if (value.length < 6)
                       return 'Password must be at least 6 characters';
-                    }
                     return null;
                   },
                 ),
               ),
-              SizedBox(height: 16),
-              // Row(
-              //   children: [
-              //     _avatarPath != null
-              //         ? CircleAvatar(
-              //             backgroundImage: AssetImage(_avatarPath!),
-              //             radius: 30,
-              //           )
-              //         : CircleAvatar(
-              //             child: Icon(Icons.person),
-              //             radius: 30,
-              //           ),
-              //   ],
-              // ),
               SizedBox(height: 20),
+
+              // Sign Up button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: ElevatedButton(
-                  onPressed: _register,
+                  onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFF6F00), // Primary color
+                    backgroundColor: Color(0xFFFF6F00),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                        borderRadius: BorderRadius.circular(16)),
                     padding: EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Text(
-                    'Sign Up',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontFamily: 'Montserrat',
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text('Sign Up',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontFamily: 'Montserrat',
+                              color: Colors.white)),
                 ),
               ),
-
               SizedBox(height: 12),
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.end,
-              //   children: [
-              //     TextButton(
-              //       onPressed: () {
-              //         // Navigate to login page
-              //       },
-              //       child: Text(
-              //         'Forgot Password?',
-              //         style: TextStyle(
-              //           color: Color(0xFFFF6F00), // Primary color
-              //           fontFamily: 'Montserrat',
-              //         ),
-              //       ),
-              //     ),
-              //   ],
-              // ),
+
+              // Already have account
               Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey, // Line color
-                      thickness: 1,
-                      endIndent: 10, // Space between line and text button
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Already have an account? ",
+                  Text("Already have an account? ",
+                      style: TextStyle(color: Colors.grey)),
+                  TextButton(
+                    onPressed: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => LoginPage())),
+                    child: Text('Login',
                         style: TextStyle(
-                          color: Colors.grey,
-                          fontFamily: 'Montserrat',
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          // Navigate to registration page
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => LoginPage()),
-                          );
-                        },
-                        child: Text(
-                          'Login',
-                          style: TextStyle(
                             color: Color(0xFFFF6F00),
-                            fontFamily: 'Montserrat',
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
-              Padding(
-                padding: const EdgeInsets.only(
-                    top: 1.0), // Moves the whole row up a bit
-                child: Row(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start, // Aligns content to top
-                  children: [
-                    // Salad image (left and tilted)
-                    Transform.rotate(
-                      angle: 0.3,
-                      child: Image.asset(
-                        'assets/images/salad.png',
-                        height: 160,
-                        width: 160,
-                      ),
-                    ),
 
-                    Spacer(),
-
-                    // Facebook & Google icons evenly spaced in the same row
-                    Padding(
-                      padding:
-                          const EdgeInsets.only(top: 24.0), // Move logos up
-                      child: Row(
-                        children: [
-                          Image.asset(
-                            'assets/images/facebook.png',
-                            height: 36,
-                            width: 36,
-                          ),
-                          SizedBox(width: 20), // Even spacing
-                          Image.asset(
-                            'assets/images/google.png',
-                            height: 36,
-                            width: 36,
-                          ),
-                        ],
-                      ),
+              // Bottom images
+              SizedBox(height: 40),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Transform.rotate(
+                    angle: 0.3,
+                    child: Image.asset('assets/images/salad.png',
+                        height: 160, width: 160),
+                  ),
+                  Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24.0),
+                    child: Row(
+                      children: [
+                        Image.asset('assets/images/facebook.png',
+                            height: 36, width: 36),
+                        SizedBox(width: 20),
+                        Image.asset('assets/images/google.png',
+                            height: 36, width: 36),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),

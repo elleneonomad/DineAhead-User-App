@@ -7,6 +7,7 @@ import '../Models/restaurants.dart';
 import '../Mock_Data/mock_restaurants.dart';
 import 'restaurant_details_page.dart';
 import 'filtered_restaurant_page.dart';
+import 'discounted_restaurant_page.dart';
 import 'search-page.dart';
 // import 'cart_page.dart';
 import '../Providers/fav_manager.dart';
@@ -37,6 +38,14 @@ class _HomePageState extends State<HomePage> {
       _selectedFilter = 'Free Delivery';
       _filteredRestaurants =
           mockRestaurants.where((r) => r.freeDelivery == true).toList();
+    });
+  }
+
+  void _filterDiscountedRestaurants() {
+    setState(() {
+      _selectedFilter = 'Discounts';
+      _filteredRestaurants =
+          mockRestaurants.where((r) => r.discounts.isNotEmpty).toList();
     });
   }
 
@@ -230,47 +239,50 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: _promoCard(
-                          "Unlimited free delivery",
-                          Colors.purple.shade100,
-                          onTap: () {
-                            final freeDeliveryRestaurants = mockRestaurants
-                                .where((r) => r.freeDelivery == true)
-                                .toList();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => FilteredRestaurantsPage(
-                                  title: "Free Delivery Restaurants",
-                                  filteredRestaurants: freeDeliveryRestaurants,
-                                ),
+                          child: _promoCard(
+                        title: "Free Delivery",
+                        subtitle: "Use code WELCOME at checkout",
+                        bgColor: Color(0xFFFF6F00),
+                        icon: Icons.delivery_dining,
+                        onTap: () {
+                          final freeDeliveryRestaurants = mockRestaurants
+                              .where((r) => r.freeDelivery == true)
+                              .toList();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FilteredRestaurantsPage(
+                                title: "Free Delivery Restaurants",
+                                filteredRestaurants: freeDeliveryRestaurants,
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
+                            ),
+                          );
+                        },
+                      )),
+                      // const SizedBox(width: 4),
                       Expanded(
                         child: _promoCard(
-                          "Buy 1, get 1 free",
-                          Colors.orange.shade100,
+                          title: "Discounts",
+                          subtitle: "Use code WELCOME at checkout",
+                          bgColor: Color(0xFFFF6F00),
+                          icon: Icons.discount,
                           onTap: () {
-                            // Example: You can add your own logic here
-                            final bogoRestaurants = mockRestaurants
-                                .where((r) => r.tags.contains("BOGO"))
+                            final discountedRestaurants = mockRestaurants
+                                .where((r) => r.discounts.isNotEmpty)
                                 .toList();
+
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => FilteredRestaurantsPage(
-                                  title: "Buy 1 Get 1 Free",
-                                  filteredRestaurants: bogoRestaurants,
+                                  title: "Discounted Restaurants",
+                                  filteredRestaurants: discountedRestaurants,
                                 ),
                               ),
                             );
                           },
                         ),
-                      ),
+                      )
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -388,17 +400,68 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Promo card widget
-  Widget _promoCard(String text, Color bgColor, {VoidCallback? onTap}) {
-    return GestureDetector(
+  Widget _promoCard({
+    required String title,
+    required String subtitle,
+    required Color bgColor,
+    IconData? icon,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.all(12),
+        width: 240,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: [
+              bgColor.withOpacity(0.9),
+              bgColor,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orangeAccent.withOpacity(0.4), // orange glow
+              blurRadius: 12,
+              spreadRadius: 1,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+        child: Row(
+          children: [
+            if (icon != null) Icon(icon, size: 30, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

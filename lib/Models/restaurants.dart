@@ -1,4 +1,5 @@
 import 'package:dinengo/Models/food_review_model.dart';
+import 'package:dinengo/Models/message_model.dart';
 
 class Restaurant {
   final String id;
@@ -21,6 +22,7 @@ class Restaurant {
   final bool isDeliveryOnly;
   final int? totalSeats;
   final int? availableSeats;
+  final List<ChatMessage> chatHistory;
 
   Restaurant({
     required this.id,
@@ -43,6 +45,7 @@ class Restaurant {
     required this.isDeliveryOnly,
     this.totalSeats,
     this.availableSeats,
+    this.chatHistory = const [],
   });
 
   double get averageMenuPrice {

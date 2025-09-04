@@ -1,5 +1,6 @@
 import '../Models/restaurants.dart';
 import '../Models/food_review_model.dart';
+import '../Models/message_model.dart';
 
 List<Restaurant> mockRestaurants = [
   Restaurant(
@@ -86,6 +87,18 @@ List<Restaurant> mockRestaurants = [
     isDeliveryOnly: false,
     totalSeats: 50,
     availableSeats: 20,
+    chatHistory: [
+      ChatMessage(
+        text: "Are your noodles spicy?",
+        isUser: true,
+        time: DateTime.now().subtract(Duration(minutes: 20)),
+      ),
+      ChatMessage(
+        text: "Yes, we have mild, medium, and hot spice levels.",
+        isUser: false,
+        time: DateTime.now().subtract(Duration(minutes: 18)),
+      ),
+    ],
   ),
 
   // -- Restaurant 2 --
@@ -151,6 +164,18 @@ List<Restaurant> mockRestaurants = [
     isDeliveryOnly: false,
     totalSeats: 40,
     availableSeats: 15,
+    chatHistory: [
+      ChatMessage(
+        text: "Are your noodles spicy?",
+        isUser: true,
+        time: DateTime.now().subtract(Duration(minutes: 20)),
+      ),
+      ChatMessage(
+        text: "Yes, we have mild, medium, and hot spice levels.",
+        isUser: false,
+        time: DateTime.now().subtract(Duration(minutes: 18)),
+      ),
+    ],
   ),
 
   // -- Restaurant 3 --
@@ -215,6 +240,18 @@ List<Restaurant> mockRestaurants = [
     isDeliveryOnly: false,
     totalSeats: 60,
     availableSeats: 40,
+    chatHistory: [
+      ChatMessage(
+        text: "Can I pre-order sushi for 7pm?",
+        isUser: true,
+        time: DateTime.now().subtract(Duration(minutes: 30)),
+      ),
+      ChatMessage(
+        text: "Sure, we’ll have it ready for you at 7pm.",
+        isUser: false,
+        time: DateTime.now().subtract(Duration(minutes: 25)),
+      ),
+    ],
   ),
 
   // -- Restaurant 4 --
@@ -280,5 +317,17 @@ List<Restaurant> mockRestaurants = [
     isDeliveryOnly: false,
     totalSeats: 30,
     availableSeats: 10,
+    chatHistory: [
+      ChatMessage(
+        text: "Are your noodles spicy?",
+        isUser: true,
+        time: DateTime.now().subtract(Duration(minutes: 20)),
+      ),
+      ChatMessage(
+        text: "Yes, we have mild, medium, and hot spice levels.",
+        isUser: false,
+        time: DateTime.now().subtract(Duration(minutes: 18)),
+      ),
+    ],
   ),
 ];

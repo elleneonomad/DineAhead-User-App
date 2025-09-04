@@ -72,10 +72,25 @@ class _CartPageState extends State<CartPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Your Cart", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        centerTitle: true,
+        title: const Text(
+          "Your Cart",
+          style: TextStyle(
+            color: Color(0xFFFF6F00),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFFF6F00)),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
       body: cartItems.isEmpty
           ? const Center(
@@ -137,138 +152,131 @@ class _CartPageState extends State<CartPage> {
                                   ),
                                 );
                               },
-                              child: Card(
-                                elevation: 2,
+                              child: Container(
                                 margin: const EdgeInsets.only(bottom: 16),
-                                shape: RoundedRectangleBorder(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    children: [
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            child: Image.asset(
-                                              cartItem.item.imageUrl,
-                                              width: 80,
-                                              height: 80,
-                                              fit: BoxFit.cover,
-                                            ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          child: Image.asset(
+                                            cartItem.item.imageUrl,
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  cartItem.item.name,
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  cartItem.item.description ??
-                                                      'No description available',
-                                                  style: const TextStyle(
-                                                      fontSize: 14,
-                                                      color: Colors.grey),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Text(
-                                                  '\$${cartItem.item.price.toStringAsFixed(2)}',
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFFFF6F00),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Column(
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              IconButton(
-                                                icon: const Icon(
-                                                    Icons.remove_circle_outline,
-                                                    color: Colors.grey),
-                                                onPressed: () =>
-                                                    _decreaseQuantity(cartItem),
+                                              Text(
+                                                cartItem.item.name,
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                               ),
-                                              Text('${cartItem.quantity}',
-                                                  style: const TextStyle(
-                                                      fontSize: 16)),
-                                              IconButton(
-                                                icon: const Icon(
-                                                    Icons.add_circle_outline,
-                                                    color: Colors.grey),
-                                                onPressed: () =>
-                                                    _increaseQuantity(cartItem),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                cartItem.item.description ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                '\$${cartItem.item.price.toStringAsFixed(2)}',
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFFFF6F00),
+                                                ),
                                               ),
                                             ],
                                           ),
-                                        ],
+                                        ),
+                                        Column(
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                  Icons.remove_circle_outline,
+                                                  size: 20,
+                                                  color: Colors.grey),
+                                              onPressed: () =>
+                                                  _decreaseQuantity(cartItem),
+                                            ),
+                                            Text('${cartItem.quantity}',
+                                                style: const TextStyle(
+                                                    fontSize: 15)),
+                                            IconButton(
+                                              icon: const Icon(
+                                                  Icons.add_circle_outline,
+                                                  size: 20,
+                                                  color: Colors.grey),
+                                              onPressed: () =>
+                                                  _increaseQuantity(cartItem),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                      controller: _instructionControllers[
+                                          cartItem.item.name],
+                                      decoration: InputDecoration(
+                                        hintText: 'Special instructions...',
+                                        filled: true,
+                                        fillColor: Colors.grey[100],
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 10),
                                       ),
-                                      const SizedBox(height: 16),
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          'Special Instructions',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton.icon(
+                                        onPressed: () =>
+                                            _updateSpecialInstruction(cartItem),
+                                        icon: const Icon(Icons.save,
+                                            size: 16, color: Color(0xFFFF6F00)),
+                                        label: const Text(
+                                          'Save',
                                           style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.grey[800],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      TextField(
-                                        controller: _instructionControllers[
-                                            cartItem.item.name],
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              'Add any special requests here...',
-                                          filled: true,
-                                          fillColor: Colors.grey[100],
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            borderSide: BorderSide.none,
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  vertical: 12, horizontal: 16),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Align(
-                                        alignment: Alignment.centerRight,
-                                        child: TextButton.icon(
-                                          onPressed: () =>
-                                              _updateSpecialInstruction(
-                                                  cartItem),
-                                          icon: const Icon(Icons.save,
                                               color: Color(0xFFFF6F00)),
-                                          label: const Text(
-                                            'Save',
-                                            style: TextStyle(
-                                                color: Color(0xFFFF6F00)),
-                                          ),
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );

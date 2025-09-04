@@ -1,3 +1,4 @@
+import 'package:dinengo/Pages/chat_list_page.dart';
 import 'package:flutter/material.dart';
 import '../Pages/account-page.dart';
 import '../Pages/home-page.dart';
@@ -96,7 +97,7 @@ class _MainAppState extends State<MainApp> {
     HomePage(),
     GroceryPage(),
     SearchPage(),
-    ChatPage(restaurantName: 'Sushi World'),
+    ChatListPage(),
     AccountPage(),
   ];
 

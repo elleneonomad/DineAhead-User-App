@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'mock_api_service.dart';
 import '../Async/async_app.dart';
+import '../Services/api_service.dart';
 import 'registration.dart';
 
 class LoginPage extends StatefulWidget {
@@ -14,6 +14,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -36,45 +37,57 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _saveCredentials(String email, String password) async {
+  void _saveCredentials(String email, String password, String token) async {
     final prefs = await SharedPreferences.getInstance();
     if (_rememberMe) {
       await prefs.setString('email', email);
       await prefs.setString('password', password);
+      await prefs.setString('token', token);
       await prefs.setBool('rememberMe', true);
     } else {
       await prefs.remove('email');
       await prefs.remove('password');
+      await prefs.remove('token');
       await prefs.setBool('rememberMe', false);
     }
   }
 
   void _login() async {
-    if (_formKey.currentState!.validate()) {
-      final response = await MockApiService.login(
-        _emailController.text,
-        _passwordController.text,
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    final response = await ApiService.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    setState(() => _isLoading = false);
+
+    if (response['success']) {
+      final data = response['data'] ?? {};
+      final user = data['user'] ?? {};
+      final token = data['token'] ?? '';
+      final name = user['name'] ?? 'User';
+
+      _saveCredentials(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+        token,
       );
 
-      if (response['success']) {
-        final data = response['data'];
-        print('Login successful: ${data['name']}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Welcome back, $name!')),
+      );
 
-        _saveCredentials(_emailController.text, _passwordController.text);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Welcome back, ${data['name']}!')),
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainApp()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['message'] ?? 'Login failed')),
-        );
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainApp()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? 'Login failed')),
+      );
     }
   }
 
@@ -119,14 +132,12 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
               SizedBox(height: 48),
-              Text(
-                'Log In',
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Montserrat',
-                    color: Colors.black),
-              ),
+              Text('Log In',
+                  style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Montserrat',
+                      color: Colors.black)),
               SizedBox(height: 48),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -140,12 +151,10 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value == null || value.isEmpty)
                       return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value))
                       return 'Please enter a valid email';
-                    }
                     return null;
                   },
                 ),
@@ -163,9 +172,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value == null || value.isEmpty)
                       return 'Please enter your password';
-                    }
                     return null;
                   },
                 ),
@@ -174,7 +182,7 @@ class _LoginPageState extends State<LoginPage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: ElevatedButton(
-                  onPressed: _login,
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFFFF6F00),
                     shape: RoundedRectangleBorder(
@@ -182,14 +190,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     padding: EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Text(
-                    'Log In',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontFamily: 'Montserrat',
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text('Log In',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'Montserrat',
+                            color: Colors.white,
+                          )),
                 ),
               ),
               SizedBox(height: 12),
@@ -207,24 +215,20 @@ class _LoginPageState extends State<LoginPage> {
                           });
                         },
                       ),
-                      Text(
-                        'Remember Me',
-                        style: TextStyle(
-                          color: Color(0xFFFF6F00),
-                          fontFamily: 'Montserrat',
-                        ),
-                      ),
+                      Text('Remember Me',
+                          style: TextStyle(
+                            color: Color(0xFFFF6F00),
+                            fontFamily: 'Montserrat',
+                          )),
                     ],
                   ),
                   TextButton(
                     onPressed: () {},
-                    child: Text(
-                      'Forgot Password?',
-                      style: TextStyle(
-                        color: Color(0xFFFF6F00),
-                        fontFamily: 'Montserrat',
-                      ),
-                    ),
+                    child: Text('Forgot Password?',
+                        style: TextStyle(
+                          color: Color(0xFFFF6F00),
+                          fontFamily: 'Montserrat',
+                        )),
                   ),
                 ],
               ),
@@ -241,13 +245,11 @@ class _LoginPageState extends State<LoginPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        "Don't have an account? ",
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontFamily: 'Montserrat',
-                        ),
-                      ),
+                      Text("Don't have an account? ",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontFamily: 'Montserrat',
+                          )),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
@@ -256,21 +258,20 @@ class _LoginPageState extends State<LoginPage> {
                                 builder: (context) => RegistrationPage()),
                           );
                         },
-                        child: Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            color: Color(0xFFFF6F00),
-                            fontFamily: 'Montserrat',
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: Text('Sign Up',
+                            style: TextStyle(
+                                color: Color(0xFFFF6F00),
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
                 ],
               ),
+
+              // --- Bottom Images Row ---
               Padding(
-                padding: const EdgeInsets.only(top: 4.0),
+                padding: const EdgeInsets.only(top: 8.0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

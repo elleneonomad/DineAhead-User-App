@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:dinengo/Pages/chat_list_page.dart';
-import '../Mock_Data/mock_message.dart';
+import '../Models/restaurants.dart';
 import '../Models/message_model.dart';
 
 class ChatPage extends StatefulWidget {
-  final String restaurantName;
+  final Restaurant restaurant;
 
-  const ChatPage({super.key, required this.restaurantName});
+  const ChatPage({super.key, required this.restaurant});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -19,14 +18,13 @@ class _ChatPageState extends State<ChatPage> {
     if (text.trim().isEmpty) return;
 
     setState(() {
-      mockChats[widget.restaurantName] ??= [];
-      mockChats[widget.restaurantName]!.add(
+      widget.restaurant.chatHistory.add(
         ChatMessage(text: text.trim(), isUser: true, time: DateTime.now()),
       );
 
       Future.delayed(const Duration(seconds: 1), () {
         setState(() {
-          mockChats[widget.restaurantName]!.add(
+          widget.restaurant.chatHistory.add(
             ChatMessage(
               text: "Thank you for your message! 😊",
               isUser: false,
@@ -42,27 +40,36 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final messages = mockChats[widget.restaurantName] ?? [];
+    final messages = widget.restaurant.chatHistory;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFFFF6F00),
         elevation: 1,
-        title: Text(widget.restaurantName,
+        title: Text(widget.restaurant.name,
             style: const TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ChatListPage()),
-            );
+            Navigator.pop(context);
           },
         ),
       ),
       body: Column(
         children: [
-          // Messages
+          // Restaurant image (not in app bar)
+          // Container(
+          //   width: double.infinity,
+          //   height: 180,
+          //   decoration: BoxDecoration(
+          //     image: DecorationImage(
+          //       image: AssetImage(widget.restaurant.imagePath),
+          //       fit: BoxFit.cover,
+          //     ),
+          //   ),
+          // ),
+
+          // Chat messages
           Expanded(
             child: ListView.builder(
               reverse: true,
@@ -89,13 +96,6 @@ class _ChatPageState extends State<ChatPage> {
                         bottomLeft: Radius.circular(isUser ? 16 : 0),
                         bottomRight: Radius.circular(isUser ? 0 : 16),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 2,
-                          offset: Offset(1, 1),
-                        )
-                      ],
                     ),
                     child: Text(
                       message.text,
@@ -110,11 +110,10 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ),
 
-          // Message Input
+          // Message input
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             decoration: const BoxDecoration(
-              color: Colors.transparent,
               border: Border(
                 top: BorderSide(color: Color(0xFFE0E0E0)),
               ),
@@ -127,9 +126,8 @@ class _ChatPageState extends State<ChatPage> {
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       hintText: 'Type your message...',
-                      hintStyle: const TextStyle(color: Colors.black54),
                       filled: true,
-                      fillColor: Color.fromARGB(255, 249, 215, 193),
+                      fillColor: const Color.fromARGB(255, 249, 215, 193),
                       contentPadding: const EdgeInsets.symmetric(
                           vertical: 14, horizontal: 20),
                       border: OutlineInputBorder(
