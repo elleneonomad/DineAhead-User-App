@@ -101,36 +101,38 @@ class _LoginPageState extends State<LoginPage> {
           child: ListView(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  IconButton(
-                    onPressed: () {},
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: Color(0xFFFF6F00),
-                      size: 32,
+                  Flexible(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Welcome back to ',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Montserrat',
+                              color: Colors.black,
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'DineAhead',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Montserrat',
+                              color: Color(0xFFFF6F00),
+                            ),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Welcome back to ',
-                      style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Montserrat',
-                          color: Colors.black)),
-                  Text('DineNGo',
-                      style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Montserrat',
-                          color: Color(0xFFFF6F00))),
-                ],
-              ),
+
               SizedBox(height: 48),
               Text('Log In',
                   style: TextStyle(

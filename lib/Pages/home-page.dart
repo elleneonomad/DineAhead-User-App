@@ -296,41 +296,54 @@ class _HomePageState extends State<HomePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              _getRestaurantSectionTitle(),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Text(
+                                _getRestaurantSectionTitle(),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow
+                                    .ellipsis, // ✅ prevent text overflow
                               ),
                             ),
-                            SizedBox(width: 20),
+                            const SizedBox(width: 8),
                             Icon(Icons.filter_list, color: primaryColor),
-                            DropdownButton<String>(
-                              value: _selectedFilter,
-                              items: [
-                                'None',
-                                'Price: High to Low',
-                                'Price: Low to High',
-                                'Rating',
-                              ].map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value,
-                                      style: TextStyle(fontSize: 12)),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() {
-                                    _selectedFilter = value;
-                                    _sortRestaurants();
-                                  });
-                                }
-                              },
-                              underline: SizedBox(),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: DropdownButton<String>(
+                                isExpanded:
+                                    true, // ✅ let dropdown use remaining space
+                                value: _selectedFilter,
+                                items: [
+                                  'None',
+                                  'Price: High to Low',
+                                  'Price: Low to High',
+                                  'Rating',
+                                ].map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(
+                                      value,
+                                      style: const TextStyle(fontSize: 12),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      _selectedFilter = value;
+                                      _sortRestaurants();
+                                    });
+                                  }
+                                },
+                                underline: const SizedBox(),
+                              ),
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 10),
 
                         // Restaurant Cards

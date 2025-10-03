@@ -19,6 +19,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   bool _codeSent = false;
 
   // Send verification code
+  // Send verification code
   void _sendVerifyCode() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -36,16 +37,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
     if (response['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response['message'] ?? "Code sent")));
+      print("Verify code response: $response");
 
-      // Auto-fill verification code from backend response
-      final code = response['data']?['verify_code']?.toString() ?? '';
-      if (code.isNotEmpty) {
-        _verifyCodeController.text = code;
-        setState(() => _codeSent = true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Verification code not received")));
-      }
+      // ✅ Don't auto-fill the verification code
+      // Just show the input field so the user can type the code from email
+      setState(() => _codeSent = true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(response['message'] ?? "Failed to send code")));
@@ -62,14 +58,20 @@ class _RegistrationPageState extends State<RegistrationPage> {
       return;
     }
 
+    if (_verifyCodeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please enter the verification code")));
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     final response = await ApiService.register(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
-      verifyCode: _verifyCodeController.text.trim(),
-      avatar: "avatar.png",
+      verifyCode: _verifyCodeController.text.trim(), // ✅ user input code
+      // avatar: "avatar.png",
     );
 
     setState(() => _isLoading = false);

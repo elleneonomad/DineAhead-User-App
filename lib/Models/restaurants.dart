@@ -1,5 +1,6 @@
 import 'package:dinengo/Models/food_review_model.dart';
 import 'package:dinengo/Models/message_model.dart';
+import 'package:dinengo/Models/table_model.dart';
 
 class Restaurant {
   final String id;
@@ -23,6 +24,8 @@ class Restaurant {
   final int? totalSeats;
   final int? availableSeats;
   final List<ChatMessage> chatHistory;
+  final List<TableModel> tables; // ✅ Add this
+
 
   Restaurant({
     required this.id,
@@ -46,6 +49,7 @@ class Restaurant {
     this.totalSeats,
     this.availableSeats,
     this.chatHistory = const [],
+    required this.tables, 
   });
 
   double get averageMenuPrice {

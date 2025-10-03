@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl =
-      "https://08b11d6f2553.ngrok-free.app/api"; // Replace with your backend URL
+      "http://dineahead.space/api"; // Replace with your backend URL
 
   // SEND VERIFICATION CODE
   static Future<Map<String, dynamic>> sendVerifyCode(String email) async {
@@ -45,19 +45,23 @@ class ApiService {
     required String email,
     required String password,
     required String verifyCode,
-    String avatar = "avatar.png",
+    // String avatar = "avatar.png",
   }) async {
     final url = Uri.parse("$baseUrl/register");
     try {
       final response = await http.post(
         url,
-        headers: {"Content-Type": "application/json", "type": "user"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "type": "user"
+        },
         body: jsonEncode({
           "name": name,
           "email": email,
           "password": password,
           "verify_code": verifyCode,
-          "avatar": avatar,
+          // "avatar": avatar,
         }),
       );
 
@@ -71,7 +75,10 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {"success": true, "data": body['data'] ?? {}};
       } else {
-        return {"success": false, "message": body["msg"] ?? "Registration failed"};
+        return {
+          "success": false,
+          "message": body["msg"] ?? "Registration failed"
+        };
       }
     } catch (e) {
       return {"success": false, "message": e.toString()};

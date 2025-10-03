@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Models/cart.dart';
 import '../Models/cart_item_model.dart';
+import 'summary_page.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -316,9 +317,14 @@ class _CartPageState extends State<CartPage> {
                           ),
                           ElevatedButton(
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text("Checkout not implemented.")),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SummaryPage(
+                                    reservedTable:
+                                        null, // ✅ no table if they didn’t book one, or pass table if required
+                                  ),
+                                ),
                               );
                             },
                             style: ElevatedButton.styleFrom(
