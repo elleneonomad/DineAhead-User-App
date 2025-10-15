@@ -6,7 +6,7 @@ class Cart {
   static List<CartItem> get items => _items;
 
   static void addItem(MenuItem item) {
-    final index = _items.indexWhere((element) => element.item.name == item.name);
+    final index = _items.indexWhere((element) => element.item.id == item.id);
     if (index != -1) {
       _items[index].quantity++;
     } else {
@@ -15,7 +15,7 @@ class Cart {
   }
 
   static void removeItem(MenuItem item) {
-    _items.removeWhere((element) => element.item.name == item.name);
+    _items.removeWhere((element) => element.item.id == item.id);
   }
 
   static void clear() {

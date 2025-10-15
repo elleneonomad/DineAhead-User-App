@@ -73,25 +73,16 @@ class _CartPageState extends State<CartPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        automaticallyImplyLeading: false,
-        titleSpacing: 0,
-        centerTitle: true,
         title: const Text(
           "Your Cart",
           style: TextStyle(
             color: Color(0xFFFF6F00),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFFF6F00)),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Color(0xFFFF6F00)),
       ),
       body: cartItems.isEmpty
           ? const Center(
@@ -123,12 +114,12 @@ class _CartPageState extends State<CartPage> {
                           const SizedBox(height: 10),
                           ...items.map((cartItem) {
                             _instructionControllers.putIfAbsent(
-                              cartItem.item.name,
+                              cartItem.item.id,
                               () => TextEditingController(),
                             );
 
                             return Dismissible(
-                              key: Key(cartItem.item.name),
+                              key: Key(cartItem.item.id),
                               direction: DismissDirection.endToStart,
                               background: Container(
                                 alignment: Alignment.centerRight,
@@ -142,7 +133,7 @@ class _CartPageState extends State<CartPage> {
                                 setState(() {
                                   Cart.removeItem(cartItem.item);
                                   _instructionControllers
-                                      .remove(cartItem.item.name)
+                                      .remove(cartItem.item.id)
                                       ?.dispose();
                                 });
 
@@ -177,12 +168,19 @@ class _CartPageState extends State<CartPage> {
                                         ClipRRect(
                                           borderRadius:
                                               BorderRadius.circular(12),
-                                          child: Image.asset(
-                                            cartItem.item.imageUrl,
-                                            width: 80,
-                                            height: 80,
-                                            fit: BoxFit.cover,
-                                          ),
+                                          child: (cartItem.item.imageUrl.startsWith('http') || cartItem.item.imageUrl.startsWith('https'))
+                                              ? Image.network(
+                                                  cartItem.item.imageUrl,
+                                                  width: 80,
+                                                  height: 80,
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : Image.asset(
+                                                  cartItem.item.imageUrl,
+                                                  width: 80,
+                                                  height: 80,
+                                                  fit: BoxFit.cover,
+                                                ),
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
@@ -247,7 +245,7 @@ class _CartPageState extends State<CartPage> {
                                     const SizedBox(height: 12),
                                     TextField(
                                       controller: _instructionControllers[
-                                          cartItem.item.name],
+                                          cartItem.item.id],
                                       decoration: InputDecoration(
                                         hintText: 'Special instructions...',
                                         filled: true,

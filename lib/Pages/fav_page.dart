@@ -14,13 +14,13 @@ class FavoritePage extends StatelessWidget {
         title: const Text(
           "Favorite Restaurants",
           style: TextStyle(
-            fontWeight: FontWeight.bold,
             color: Color(0xFFFF6F00),
+            fontWeight: FontWeight.bold,
           ),
         ),
         backgroundColor: Colors.white,
+        elevation: 1,
         iconTheme: const IconThemeData(color: Color(0xFFFF6F00)),
-        elevation: 3,
       ),
       body: favorites.isEmpty
           ? const Center(child: Text("No favorite restaurants yet."))

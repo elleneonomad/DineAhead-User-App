@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../Models/restaurants.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../Services/firebase_chat.dart';
 import 'chat-page.dart';
-import '../Mock_Data/mock_restaurants.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -11,107 +12,145 @@ class ChatListPage extends StatefulWidget {
 }
 
 class _ChatListPageState extends State<ChatListPage> {
-  List<Restaurant> filteredRestaurants = [];
+  String _search = '';
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
-    filteredRestaurants =
-        mockRestaurants.where((r) => r.chatHistory.isNotEmpty).toList();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString('uid');
+    debugPrint('ChatList: loaded currentUserId=$id');
+    setState(() => _currentUserId = id);
   }
 
   void _onSearchChanged(String query) {
-    final results = mockRestaurants.where((r) {
-      final hasChats = r.chatHistory.isNotEmpty;
-      final matchesQuery = r.name.toLowerCase().contains(query.toLowerCase());
-      return hasChats && matchesQuery;
-    }).toList();
-
-    setState(() {
-      filteredRestaurants = results;
-    });
+    setState(() => _search = query.trim().toLowerCase());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100], // light background for modern look
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(100),
-        child: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: false,
-          title: const Text(
-            "Messages",
-            style: TextStyle(
-              color: Colors.black87,
-              fontWeight: FontWeight.bold,
-              fontSize: 26,
-            ),
-          ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(50),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: TextField(
-                  decoration: const InputDecoration(
-                    hintText: "Search chats...",
-                    border: InputBorder.none,
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
-                  ),
-                  onChanged: _onSearchChanged,
-                ),
-              ),
-            ),
+      appBar: AppBar(
+        title: const Text(
+          "Messages",
+          style: TextStyle(
+            color: Color(0xFFFF6F00),
+            fontWeight: FontWeight.bold,
           ),
         ),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Color(0xFFFF6F00)),
       ),
-      body: ListView.builder(
-        itemCount: filteredRestaurants.length,
-        itemBuilder: (context, index) {
-          final restaurant = filteredRestaurants[index];
-          final lastMessage = restaurant.chatHistory.last;
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundImage: AssetImage(restaurant.imagePath),
-                radius: 25,
-              ),
-              title: Text(
-                restaurant.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-              subtitle: Text(
-                lastMessage.text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.grey),
-              ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatPage(restaurant: restaurant),
+      body: (_currentUserId == null)
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // Search bar
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        hintText: "Search chats...",
+                        border: InputBorder.none,
+                        prefixIcon: Icon(Icons.search, color: Colors.grey),
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onChanged: _onSearchChanged,
+                    ),
                   ),
-                );
-              },
+                ),
+                // Chat list
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    stream: FirebaseChatService.threadsStream(_currentUserId!),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        debugPrint('ChatList stream error: ${snapshot.error}');
+                      }
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final docs = snapshot.data?.docs ?? [];
+                      debugPrint('ChatList: fetched ${docs.length} thread(s) for userId=$_currentUserId');
+                      final uid = _currentUserId;
+                      final filtered = docs.where((d) {
+                        final data = d.data();
+                        final name = (data['merchantName'] ?? data['userName'] ?? '').toString().toLowerCase();
+                        return _search.isEmpty || name.contains(_search);
+                      }).toList();
+
+                      if (filtered.isEmpty) {
+                        debugPrint('ChatList: no conversations after filter (search="$_search").');
+                        return const Center(child: Text('No conversations yet'));
+                      }
+
+                      return ListView.builder(
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+              final doc = filtered[index];
+              final data = doc.data();
+              final participants = List<String>.from(data['participants'] ?? []);
+              final otherId = participants.firstWhere((p) => p != uid, orElse: () => '');
+              final otherName = (otherId == data['userId']) ? (data['userName'] ?? '') : (data['merchantName'] ?? '');
+              final otherAvatar = (otherId == data['userId']) ? (data['userAvatar'] ?? '') : (data['merchantAvatar'] ?? '');
+              final lastMessage = (data['lastMessage'] ?? '').toString();
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: (otherAvatar is String && otherAvatar.startsWith('http'))
+                        ? NetworkImage(otherAvatar)
+                        : null,
+                    child: (otherAvatar is String && otherAvatar.startsWith('http'))
+                        ? null
+                        : const Icon(Icons.person),
+                    radius: 25,
+                  ),
+                  title: Text(
+                    otherName.toString().isEmpty ? 'Chat' : otherName.toString(),
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  ),
+                  subtitle: Text(
+                    lastMessage,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatPage(
+                          threadId: doc.id,
+                          participants: participants,
+                          otherDisplayName: otherName.toString(),
+                          otherAvatarUrl: otherAvatar.toString(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
     );
   }
 }

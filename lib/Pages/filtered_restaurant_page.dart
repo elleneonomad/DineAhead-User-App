@@ -17,26 +17,16 @@ class FilteredRestaurantsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 2,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFFFF6F00)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
         title: Text(
           title,
           style: const TextStyle(
             color: Color(0xFFFF6F00),
             fontWeight: FontWeight.bold,
-            fontSize: 20,
           ),
         ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(16),
-          ),
-        ),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Color(0xFFFF6F00)),
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),

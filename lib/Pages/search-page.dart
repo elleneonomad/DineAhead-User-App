@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Models/restaurants.dart';
-import '../Mock_Data/mock_restaurants.dart';
+import '../Services/api_service.dart';
 import 'restaurant_details_page.dart';
-import 'food_detail_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -13,14 +12,24 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchMode = 'restaurant'; // 'restaurant' or 'menu'
+  bool _loading = false;
+  List<Restaurant> _results = [];
+  List<String> _cuisineOptions = [];
+  String? _selectedCuisine;
+  String? _selectedPriceRange;
+
+  final Color themeColor = const Color(0xFFFF6F00);
 
   @override
   void initState() {
     super.initState();
+    _loadCuisines();
     _searchController.addListener(() {
-      setState(() {}); // Triggers rebuild on any text change
+      if (_searchController.text.isEmpty) {
+        _performSearch('');
+      }
     });
+    _performSearch('');
   }
 
   @override
@@ -29,147 +38,40 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
-  List<dynamic> _searchResults =
-      mockRestaurants; // Can be List<Restaurant> or List<Map>
+  Future<void> _loadCuisines() async {
+    try {
+      final cuisines = await ApiService.getCuisines();
+      setState(() {
+        _cuisineOptions = cuisines.map((c) => c.name).toList();
+      });
+    } catch (_) {}
+  }
 
-  List<String> _recentSearches = [];
-
-  bool isMenuSearch = false;
-
-  void _performSearch(String query, {bool saveToRecent = false}) {
-    final lowerQuery = query.toLowerCase();
-
-    setState(() {
-      if (query.isEmpty) {
-        _searchResults = mockRestaurants;
-        isMenuSearch = false;
-      } else {
-        if (saveToRecent && !_recentSearches.contains(query)) {
-          _recentSearches.insert(0, query);
-          if (_recentSearches.length > 5) {
-            _recentSearches = _recentSearches.sublist(0, 5);
-          }
-        }
-
-        if (_searchMode == 'menu') {
-          final menuMatches = <Map<String, dynamic>>[];
-          for (var restaurant in mockRestaurants) {
-            for (var item in restaurant.menu) {
-              if (item.name.toLowerCase().contains(lowerQuery)) {
-                menuMatches.add({
-                  'menuItem': item,
-                  'restaurant': restaurant,
-                });
-              }
-            }
-          }
-          _searchResults = menuMatches;
-          isMenuSearch = true;
-        } else {
-          _searchResults = mockRestaurants.where((restaurant) {
-            return restaurant.name.toLowerCase().contains(lowerQuery);
-          }).toList();
-          isMenuSearch = false;
-        }
+  Future<void> _performSearch(String query) async {
+    final trimmed = query.trim();
+    setState(() => _loading = true);
+    try {
+      final list = await ApiService.getRestaurants(
+        cuisine: _selectedCuisine,
+        priceRange: _selectedPriceRange,
+        search: trimmed.isEmpty ? null : trimmed,
+      );
+      setState(() {
+        _results = list;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Search failed: $e')));
       }
-    });
-  }
-
-  Widget _buildRecentSearches() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 8),
-          child: Text(
-            "Recent Searches",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ),
-        Wrap(
-          spacing: 8,
-          children: _recentSearches.map((query) {
-            return ActionChip(
-              label: Text(query),
-              onPressed: () {
-                _searchController.text = query;
-                _performSearch(query);
-              },
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _menuItemCard(Map<String, dynamic> data) {
-    final menuItem = data['menuItem'];
-    final restaurant = data['restaurant'];
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          )
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              menuItem.imageUrl,
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(menuItem.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Restaurant: ${restaurant.name}"),
-                  Text("Price: \$${menuItem.price.toStringAsFixed(2)}"),
-                ],
-              ),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                _performSearch(menuItem.name, saveToRecent: true);
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => FoodDetailPage(item: menuItem),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Widget _restaurantCard(Restaurant restaurant) {
     return GestureDetector(
       onTap: () {
-        _performSearch(restaurant.name,
-            saveToRecent: true); // Add restaurant to recent
-
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -182,152 +84,263 @@ class _SearchPageState extends State<SearchPage> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
             BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(2, 2),
-            )
+              color: Colors.orange.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                restaurant.imagePath,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-              ),
+              borderRadius: BorderRadius.circular(10),
+              child: restaurant.cover.isNotEmpty
+                  ? Image.network(
+                      restaurant.cover,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.orange.shade50,
+                      child: const Icon(Icons.restaurant, color: Colors.orange),
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(restaurant.name,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    restaurant.name,
+                    style: const TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       const Icon(Icons.star,
                           color: Color(0xFFFF6F00), size: 16),
                       const SizedBox(width: 4),
-                      Text("${restaurant.rating}",
-                          style: const TextStyle(fontSize: 14)),
+                      Text(
+                        "${restaurant.rating}",
+                        style: const TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontSize: 13,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(restaurant.tags.join(', '),
-                      style: const TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 4),
-                  Text(restaurant.deliveryTime,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    restaurant.tags.join(', '),
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontFamily: 'Montserrat',
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    restaurant.priceLevel,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontFamily: 'Montserrat',
+                    ),
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
+  Widget _styledDropdown<T>({
+    required String label,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required Function(T?) onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<T>(
+        value: value,
+        items: items,
+        onChanged: onChanged,
+        icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.orange),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+              fontFamily: 'Montserrat', color: Colors.grey, fontSize: 13),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        ),
+        dropdownColor: Colors.white,
+        style: const TextStyle(
+            fontFamily: 'Montserrat',
+            color: Colors.black87,
+            fontSize: 14,
+            fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final primaryColor = const Color(0xFFFF6F00);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFDFD),
+      backgroundColor: Colors.orange.shade50,
       appBar: AppBar(
-        title: const Text("Search"),
-        backgroundColor: primaryColor,
+        title: const Text(
+          "Search Restaurants",
+          style: TextStyle(
+            fontFamily: 'Montserrat',
+            color: Color(0xFFFF6F00),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Color(0xFFFF6F00)),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // 🔍 Search bar
             TextField(
               controller: _searchController,
-              onChanged: (query) {
-                // Live preview, no saving to recent
-                _performSearch(query, saveToRecent: false);
-              },
-              onSubmitted: (query) {
-                _performSearch(query,
-                    saveToRecent: true); // Save only on submit
-              },
+              onSubmitted: (query) => _performSearch(query),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.grey[100],
-                hintText: "Search for restaurants and menus",
-                prefixIcon: const Icon(Icons.search),
+                fillColor: Colors.white,
+                hintText: "Search for restaurants...",
+                hintStyle: const TextStyle(fontFamily: 'Montserrat'),
+                prefixIcon: const Icon(Icons.search, color: Color(0xFFFF6F00)),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                          _performSearch('');
+                        },
+                      )
+                    : null,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
                 ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
+
+            const SizedBox(height: 14),
+
+            // 🎯 Filters
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ChoiceChip(
-                  label: const Text("Restaurants"),
-                  selected: _searchMode == 'restaurant',
-                  onSelected: (_) {
-                    setState(() {
-                      _searchMode = 'restaurant';
-                      _performSearch(
-                          _searchController.text); // Re-perform search
-                    });
-                  },
-                  selectedColor: primaryColor.withOpacity(0.2),
-                  labelStyle: TextStyle(
-                    color: _searchMode == 'restaurant'
-                        ? primaryColor
-                        : Colors.black,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: _styledDropdown<String>(
+                    label: "Cuisine",
+                    value: _selectedCuisine,
+                    items: [
+                      const DropdownMenuItem<String>(
+                          value: null, child: Text('All cuisines')),
+                      ..._cuisineOptions.map(
+                          (c) => DropdownMenuItem(value: c, child: Text(c))),
+                    ],
+                    onChanged: (v) {
+                      setState(() => _selectedCuisine = v);
+                      _performSearch(_searchController.text);
+                    },
                   ),
                 ),
-                const SizedBox(width: 12),
-                ChoiceChip(
-                  label: const Text("Menus"),
-                  selected: _searchMode == 'menu',
-                  onSelected: (_) {
-                    setState(() {
-                      _searchMode = 'menu';
-                      _performSearch(
-                          _searchController.text); // Re-perform search
-                    });
-                  },
-                  selectedColor: primaryColor.withOpacity(0.2),
-                  labelStyle: TextStyle(
-                    color: _searchMode == 'menu' ? primaryColor : Colors.black,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _styledDropdown<String>(
+                    label: "Price Range",
+                    value: _selectedPriceRange,
+                    items: const [
+                      DropdownMenuItem<String>(
+                          value: null, child: Text('All prices')),
+                      DropdownMenuItem<String>(
+                          value: 'budget', child: Text('Budget')),
+                      DropdownMenuItem<String>(
+                          value: 'mid-range', child: Text('Mid-range')),
+                      DropdownMenuItem<String>(
+                          value: 'fine-dining', child: Text('Fine-dining')),
+                    ],
+                    onChanged: (v) {
+                      setState(() => _selectedPriceRange = v);
+                      _performSearch(_searchController.text);
+                    },
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 20),
+
+            // 📋 Results
             Expanded(
-              child: _searchController.text.isEmpty
-                  ? _buildRecentSearches()
-                  : _searchResults.isEmpty
-                      ? const Center(child: Text("No results found"))
+              child: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFFF6F00),
+                      ),
+                    )
+                  : _results.isEmpty
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset('assets/images/empty.png',
+                                width: 150, height: 150),
+                            const SizedBox(height: 16),
+                            const Text(
+                              "No restaurants found",
+                              style: TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey),
+                            ),
+                          ],
+                        )
                       : ListView.builder(
-                          itemCount: _searchResults.length,
-                          itemBuilder: (context, index) {
-                            if (isMenuSearch) {
-                              return _menuItemCard(_searchResults[index]);
-                            } else {
-                              return _restaurantCard(_searchResults[index]);
-                            }
-                          },
+                          itemCount: _results.length,
+                          itemBuilder: (context, index) =>
+                              _restaurantCard(_results[index]),
                         ),
-            )
+            ),
           ],
         ),
       ),
